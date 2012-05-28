@@ -5,10 +5,6 @@ using namespace std;
 using boost::lexical_cast;
 using boost::trim;
 
-typedef SamplesReader::TSamples TSamples;
-typedef SamplesReader::TSymbol TSymbol;
-typedef SamplesReader::TSample TSample;
-
 SamplesReader::SamplesReader(void)
 {
 }
@@ -27,7 +23,7 @@ vector<string> _splitBySpaces( string line )
 }
 
 
-void SamplesReader::ReadSamples( string filename, TSamples& pos, TSamples& neg, unsigned* alphabetLength )
+void SamplesReader::ReadSamples(string filename, TObservationVector& pos, TObservationVector& neg, size_t* alphabetLength)
 {
 	ifstream file(filename);
 	if(!file.is_open()) 
@@ -75,7 +71,7 @@ void SamplesReader::ReadSamples( string filename, TSamples& pos, TSamples& neg, 
 			}
 
 			// Lee la nueva muestra, convierte cada simbolo
-			TSample newSample;
+			TSymbolVector newSample;
 			newSample.reserve(sampleLenght);
 			for (auto it = splits.cbegin()+2; it!=splits.cend(); ++it)
 			{
