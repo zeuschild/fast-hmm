@@ -17,8 +17,8 @@ protected:
 	const TObservationVector* discreteObservations;
 	
 	bool HasConverged(TReal oldLogLikelihood, TReal newLogLikelihood, int currentIteration);	
-	void ComputeForwardBackward(unsigned index, TMatrix& lnFwd, TMatrix& lnBwd);
-	void ComputeKsi(unsigned index, const TMatrix& lnFwd, const TMatrix& lnBwd);
+	void ComputeForwardBackward(size_t index, TMatrix& lnFwd, TMatrix& lnBwd);
+	void ComputeKsi(size_t index, const TMatrix& lnFwd, const TMatrix& lnBwd);
 	void UpdateEmissions();
 
 public:

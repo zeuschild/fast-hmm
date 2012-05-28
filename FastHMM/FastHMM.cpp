@@ -5,11 +5,9 @@
 #include "BaumWelchLearning.h"
 #include "ForwardTopology.h"
 
-
-void Testing();
 int main(int argc, char* argv[])
 {
-	Testing();
+	
 	return 0;
 }
 

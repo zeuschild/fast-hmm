@@ -13,6 +13,6 @@ public:
 	size_t deepness;
 	bool random;	
 
-	size_t Create(bool logarithm, int symbols, TMatrix& transitionMatrix, TRealVector& initialState, TMatrix& emissions);
+	size_t Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState, TMatrix& emissions);
 };
 

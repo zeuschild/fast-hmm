@@ -233,8 +233,7 @@ TReal BaumWelchLearning::Run(const TObservationVector& observations)
 /// <param name="index">The index of the observation in the input training data.</param>
 /// <param name="lnFwd">Returns the computed forward probabilities matrix.</param>
 /// <param name="lnBwd">Returns the computed backward probabilities matrix.</param>
-/// 
-void BaumWelchLearning::ComputeForwardBackward(unsigned index, TMatrix& lnFwd, TMatrix& lnBwd)
+void BaumWelchLearning::ComputeForwardBackward(size_t index, TMatrix& lnFwd, TMatrix& lnBwd)
 {
 	auto states = model.GetStates();
 	auto& obs = (*discreteObservations)[index];
@@ -302,7 +301,7 @@ void BaumWelchLearning::UpdateEmissions()
 /// <param name="index">The index of the observation in the input training data.</param>
 /// <param name="lnFwd">The matrix of forward probabilities for the observation.</param>
 /// <param name="lnBwd">The matrix of backward probabilities for the observation.</param>
-void BaumWelchLearning::ComputeKsi(unsigned index, const TMatrix& lnFwd, const TMatrix& lnBwd)
+void BaumWelchLearning::ComputeKsi(size_t index, const TMatrix& lnFwd, const TMatrix& lnBwd)
 {
     auto states = model.GetStates();
     auto& logA = model.GetTransitions();

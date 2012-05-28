@@ -36,7 +36,7 @@ void logVector(TRealVector& v)
 ///   Creates the state transitions matrix and the
 ///   initial state probabilities for this topology.
 /// </summary>
-size_t ForwardTopology::Create(bool logarithm, int symbols, TMatrix& transitionMatrix, TRealVector& initialState, TMatrix& emissions)
+size_t ForwardTopology::Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState, TMatrix& emissions)
 {
 	boost::uniform_real<TReal> uni_dist(0,1);
 	boost::mt19937_64 eng(42);
