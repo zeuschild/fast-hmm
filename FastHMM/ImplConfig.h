@@ -20,9 +20,9 @@ inline void PrintMatrix(TMatrix& m)
 	using namespace std;
 	using boost::lexical_cast;
 	cout << "Matrix" << endl;
-	for(int i=0; i<m.size1(); i++)
+	for(size_t i=0; i<m.size1(); i++)
 	{
-		for(int j=0; j<m.size2(); j++)
+		for(size_t j=0; j<m.size2(); j++)
 		{
 			auto r = m(i, j);
 			auto str = lexical_cast<string, TReal>(r);
