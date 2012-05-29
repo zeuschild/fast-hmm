@@ -258,7 +258,6 @@ void BaumWelchLearning::ComputeForwardBackward(size_t index, TMatrix& lnFwd, TMa
 ///   in the training data and the Gamma probability matrix to
 ///   update the probability distributions of symbol emissions.
 /// </remarks>
-/// 
 void BaumWelchLearning::UpdateEmissions()
 {
 	auto& B = model.emissions;

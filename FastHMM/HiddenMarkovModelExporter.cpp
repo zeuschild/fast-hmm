@@ -30,6 +30,7 @@ ostream &operator << (ostream &os, const TRealVector &m)
 	return os;
 }
 
+/// Escribe en un archivo de texto un HMM
 void HiddenMarkovModelExporter::ExportPlainText(const HiddenMarkovModel& model, const std::string& filename)
 {
 	ofstream out(filename);
@@ -53,6 +54,7 @@ vector<string> splitBySpaces( string line )
 	return splits;
 }
 
+/// Carga un archivo de texto con el modelo HMM
 void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const std::string& filename)
 {
 	ifstream file(filename);
