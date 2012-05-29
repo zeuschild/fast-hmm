@@ -87,9 +87,9 @@ TReal BaumWelchLearning::Run(const TObservationVector& observations)
 
 	
     // Grab model information
-    auto states = model.GetStates();
-    auto& logA = model.GetTransitions();
-    auto& logP = model.GetProbabilities();
+	auto states = model.states;
+	auto& logA = model.transitions;
+	auto& logP = model.probabilities;
 		
     // Initialize the algorithm
 	auto N = observations.size();
@@ -235,7 +235,7 @@ TReal BaumWelchLearning::Run(const TObservationVector& observations)
 /// <param name="lnBwd">Returns the computed backward probabilities matrix.</param>
 void BaumWelchLearning::ComputeForwardBackward(size_t index, TMatrix& lnFwd, TMatrix& lnBwd)
 {
-	auto states = model.GetStates();
+	auto states = model.states;
 	auto& obs = (*discreteObservations)[index];
     auto T = obs.size();
 
@@ -261,9 +261,9 @@ void BaumWelchLearning::ComputeForwardBackward(size_t index, TMatrix& lnFwd, TMa
 /// 
 void BaumWelchLearning::UpdateEmissions()
 {
-	auto& B = model.GetEmissions();
-	auto states = model.GetStates();
-    auto symbols = model.GetSymbols();
+	auto& B = model.emissions;
+	auto states = model.states;
+	auto symbols = model.symbols;
 
     for (size_t i = 0; i < states; i++)
     {
@@ -303,9 +303,9 @@ void BaumWelchLearning::UpdateEmissions()
 /// <param name="lnBwd">The matrix of backward probabilities for the observation.</param>
 void BaumWelchLearning::ComputeKsi(size_t index, const TMatrix& lnFwd, const TMatrix& lnBwd)
 {
-    auto states = model.GetStates();
-    auto& logA = model.GetTransitions();
-    auto& logB = model.GetEmissions();
+	auto states = model.states;
+	auto& logA = model.transitions;
+	auto& logB = model.emissions;
 
     auto sequence = (*discreteObservations)[index];
 	auto T = sequence.size();

@@ -24,10 +24,10 @@ TReal LogSum(TReal lna, TReal lnc)
 /// </summary>
 void LogForward(HiddenMarkovModel& model, const TSymbolVector& observations, TMatrix& lnFwd)
 {
-	auto states = model.GetStates();
-	auto& logA = model.GetTransitions();
-	auto& logB = model.GetEmissions();
-	auto& logPi = model.GetProbabilities();
+	auto states = model.states;
+	auto& logA = model.transitions;
+	auto& logB = model.emissions;
+	auto& logPi = model.probabilities;
 
 	auto T = observations.size();
 
@@ -61,10 +61,10 @@ void LogForward(HiddenMarkovModel& model, const TSymbolVector& observations, TMa
 /// </summary>
 void LogBackward(HiddenMarkovModel& model, const TSymbolVector& observations, TMatrix& lnBwd)
 {
-	auto states = model.GetStates();
-	auto& logA = model.GetTransitions();
-	auto& logB = model.GetEmissions();
-	auto& logPi = model.GetProbabilities();
+	auto states = model.states;
+	auto& logA = model.transitions;
+	auto& logB = model.emissions;
+	auto& logPi = model.probabilities;
 
 	auto T = observations.size();
 
