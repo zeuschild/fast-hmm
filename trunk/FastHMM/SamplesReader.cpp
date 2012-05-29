@@ -75,7 +75,7 @@ void SamplesReader::ReadSamples(string filename, TObservationVector& pos, TObser
 			newSample.reserve(sampleLenght);
 			for (auto it = splits.cbegin()+2; it!=splits.cend(); ++it)
 			{
-				auto val = lexical_cast<TSymbol>(*it);
+				auto val = (TSymbol)lexical_cast<int>(*it);
 				newSample.push_back(val);
 			}
 

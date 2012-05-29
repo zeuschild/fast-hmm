@@ -1,8 +1,8 @@
 #pragma once
-
+#include "ImplConfig.h"
 #include <vector>
 #include <string>
-#include "ImplConfig.h"
+
 
 class SamplesReader
 {
