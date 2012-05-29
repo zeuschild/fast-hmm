@@ -14,6 +14,7 @@ SamplesReader::~SamplesReader(void)
 {
 }
 
+// divide la cadena por espacios
 vector<string> _splitBySpaces( string line )
 {
 	vector<string> splits;
@@ -22,7 +23,9 @@ vector<string> _splitBySpaces( string line )
 	return splits;
 }
 
-
+/// <summary>
+/// Lee dos conjuntos de muestras a partir de un archivo de texto
+/// </summary>
 void SamplesReader::ReadSamples(string filename, TObservationVector& pos, TObservationVector& neg, size_t* alphabetLength)
 {
 	ifstream file(filename);
