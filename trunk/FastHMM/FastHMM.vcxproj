@@ -151,6 +151,8 @@
     <ClInclude Include="ForwardTopology.h" />
     <ClInclude Include="HiddenMarkovModel.h" />
     <ClInclude Include="ImplConfig.h" />
+    <ClInclude Include="MathUtil.h" />
+    <ClInclude Include="ModelTopologyBase.h" />
     <ClInclude Include="SamplesReader.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
@@ -160,6 +162,7 @@
     <ClCompile Include="ForwardBackwardAlgorithm.cpp" />
     <ClCompile Include="ForwardTopology.cpp" />
     <ClCompile Include="HiddenMarkovModel.cpp" />
+    <ClCompile Include="ModelTopologyBase.cpp" />
     <ClCompile Include="SamplesReader.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

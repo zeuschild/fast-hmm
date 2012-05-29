@@ -21,8 +21,7 @@ void Testing()
 {
 	auto model = HiddenMarkovModel();
 	auto top = ForwardTopology(6, 6, false);
-	model.symbols = 4;
-	model.states = top.Create(true, model.symbols, model.GetTransitions(), model.GetProbabilities(), model.GetEmissions());		
+	InitializeHiddenMarkovModelWithTopology(model, top, 4);
 	auto learning = BaumWelchLearning(model, 5e-4, 0);	
 	TSymbol p1[] = 
 	{ 

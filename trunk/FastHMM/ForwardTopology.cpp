@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "ForwardTopology.h"
+#include "MathUtil.h"
 
 using std::min;
 
@@ -13,30 +14,11 @@ ForwardTopology::ForwardTopology(int _states, int _deepness, bool _random)
 }
 
 
-void logMatrix(TMatrix& m) 
-{
-	for (unsigned i = 0; i < m.size1 (); ++ i) 
-	{
-		for (unsigned j = 0; j < m.size2 (); ++ j)
-		{
-			auto r = m(i, j);
-			r = log(r);
-			m(i, j) = r;
-		}
-	}
-}
-
-void logVector(TRealVector& v)
-{
-	for (unsigned i = 0; i < v.size (); ++ i)
-		v[i] = log(v[i]);
-}
-
 /// <summary>
 ///   Creates the state transitions matrix and the
 ///   initial state probabilities for this topology.
 /// </summary>
-size_t ForwardTopology::Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState, TMatrix& emissions)
+size_t ForwardTopology::Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState)
 {
 	boost::uniform_real<TReal> uni_dist(0,1);
 	boost::mt19937_64 eng(42);
@@ -79,13 +61,6 @@ size_t ForwardTopology::Create(bool logarithm, size_t symbols, TMatrix& transiti
    
     transitionMatrix = A;
     initialState = pi;   
-
-	///////////////////////////////////////////////////////////////////////////////////////
-
-	// Initialize B with uniform probabilities
-    TMatrix logB(states, symbols, 1.0 / symbols);    
-	logMatrix(logB);
-	emissions = logB;
 
     return states;
 }
