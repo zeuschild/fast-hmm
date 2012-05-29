@@ -7,7 +7,7 @@ using std::min;
 /// <summary>
 ///   Creates a new Forward topology for a given number of states.
 /// </summary>
-ForwardTopology::ForwardTopology(int _states, int _deepness, bool _random)
+ForwardTopology::ForwardTopology(size_t _states, size_t _deepness, bool _random)
 	: states(_states), deepness(_deepness), random(_random), pi(_states)
 {	
 	pi[0] = (TReal)1;
