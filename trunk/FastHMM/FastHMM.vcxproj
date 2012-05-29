@@ -150,6 +150,7 @@
     <ClInclude Include="ForwardBackwardAlgorithm.h" />
     <ClInclude Include="ForwardTopology.h" />
     <ClInclude Include="HiddenMarkovModel.h" />
+    <ClInclude Include="HiddenMarkovModelExporter.h" />
     <ClInclude Include="ImplConfig.h" />
     <ClInclude Include="MathUtil.h" />
     <ClInclude Include="ModelTopologyBase.h" />
@@ -162,6 +163,7 @@
     <ClCompile Include="ForwardBackwardAlgorithm.cpp" />
     <ClCompile Include="ForwardTopology.cpp" />
     <ClCompile Include="HiddenMarkovModel.cpp" />
+    <ClCompile Include="HiddenMarkovModelExporter.cpp" />
     <ClCompile Include="ModelTopologyBase.cpp" />
     <ClCompile Include="SamplesReader.cpp" />
     <ClCompile Include="stdafx.cpp">
