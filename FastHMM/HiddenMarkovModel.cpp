@@ -7,7 +7,8 @@ HiddenMarkovModel::HiddenMarkovModel()
 {
 }
 
-
+/// Evalua el modelo oculto de markov en la secuencia de observaciones y obtiene
+/// la verosimilitud (en espacio logaritmico) con la cual lo explica
 TReal EvaluateModel(HiddenMarkovModel& model, TSymbolVector& observations)
 {
 	if (observations.empty())
