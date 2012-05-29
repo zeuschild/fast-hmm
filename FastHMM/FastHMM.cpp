@@ -79,6 +79,8 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 		std::cout << "Evaluada N #" << i << " = " << r << std::endl;
 		if(r == 0) nc++;
 	}
+	std::cout << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << std::endl;
+	std::cout << "Total: " << (pos.size() + neg.size()) << std::endl;
 }
 
 int main(int argc, char* argv[])
