@@ -79,7 +79,7 @@ void LogBackward(HiddenMarkovModel& model, const TSymbolVector& observations, TM
         lnBwd(T - 1, i) = 0;
 
 	// 2. Induction
-    for (size_t t = T - 2; t >= 0; t--)
+    for (long t = (long)(T - 2); t >= 0; t--)
     {
         for (size_t i = 0; i < states; i++)
         {
