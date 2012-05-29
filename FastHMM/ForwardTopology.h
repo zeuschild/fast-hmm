@@ -8,7 +8,7 @@ class ForwardTopology : public ModelTopologyBase
 	TRealVector pi;
 
 public:
-	ForwardTopology(int states, int deepness, bool random);
+	ForwardTopology(size_t states, size_t deepness, bool random);
 	
 	size_t states;
 	size_t deepness;

@@ -5,8 +5,8 @@
 class HiddenMarkovModel
 {
 public:
-	std::size_t states;	
-	std::size_t symbols;
+	size_t states;	
+	size_t symbols;
 	TRealVector probabilities;	
 	TMatrix transitions;
 	TMatrix emissions;	
@@ -14,4 +14,4 @@ public:
 	HiddenMarkovModel();
 };
 
-TReal EvaluateModel(HiddenMarkovModel& model, TSymbolVector& observations);
+TReal EvaluateModel(const HiddenMarkovModel& model, const TSymbolVector& observations);

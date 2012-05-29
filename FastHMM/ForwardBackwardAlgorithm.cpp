@@ -22,7 +22,7 @@ TReal LogSum(TReal lna, TReal lnc)
 /// <summary>
 ///   Computes Forward probabilities for a given hidden Markov model and a set of observations.
 /// </summary>
-void LogForward(HiddenMarkovModel& model, const TSymbolVector& observations, TMatrix& lnFwd)
+void LogForward(const HiddenMarkovModel& model, const TSymbolVector& observations, TMatrix& lnFwd)
 {
 	auto states = model.states;
 	auto& logA = model.transitions;
@@ -59,7 +59,7 @@ void LogForward(HiddenMarkovModel& model, const TSymbolVector& observations, TMa
 /// <summary>
 ///   Computes Backward probabilities for a given hidden Markov model and a set of observations.
 /// </summary>
-void LogBackward(HiddenMarkovModel& model, const TSymbolVector& observations, TMatrix& lnBwd)
+void LogBackward(const HiddenMarkovModel& model, const TSymbolVector& observations, TMatrix& lnBwd)
 {
 	auto states = model.states;
 	auto& logA = model.transitions;

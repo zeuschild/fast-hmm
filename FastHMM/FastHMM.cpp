@@ -7,32 +7,85 @@
 #include "SamplesReader.h"
 #include "HiddenMarkovModelExporter.h"
 
-int main(int argc, char* argv[])
-{		
+using std::string;
+using boost::lexical_cast;
+
+void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_t states, size_t alpha)
+{
+	auto tolerance = 5e-5;
+	auto random = true;
+	auto topology = ForwardTopology(states, states, random);
+	InitializeHiddenMarkovModelWithTopology(model, topology, alpha);
+	auto learning = BaumWelchLearning(model, tolerance, 0);
+	auto likelihood = learning.Run(samples);
+	std::cout << "Modelo obtenido con Likelihood = " << likelihood << std::endl;
+}
+
+void Create(string samplesFile, string pModelFile, string nModelFile, int states)
+{
 	TObservationVector pos, neg;
 	size_t symbols;
 	SamplesReader reader;
+	auto model = HiddenMarkovModel();
 	std::cout << "Cargando archivo de muestras." << std::endl;
-	reader.ReadSamples("C:\\Users\\Jairo\\Documents\\Visual Studio 2010\\Projects\\FastHMM\\x64\\Debug\\samples0.destino", pos, neg, &symbols);	
+	reader.ReadSamples(samplesFile, pos, neg, &symbols);
 	{
-		std::cout << "Construyendo modelo Positivo" << std::endl;
-		auto model = HiddenMarkovModel();
-		auto top = ForwardTopology(8, 8, false);
-		InitializeHiddenMarkovModelWithTopology(model, top, symbols); 
-		auto learning = BaumWelchLearning(model, 5e-4, 0);
-		auto tol = learning.Run(pos);
-		std::cout << "Model obtenido con Likelihood = " << tol << std::endl;
-		HiddenMarkovModelExporter::ExportPlainText(model, "positive_model.txt");
+		std::cout << "Construyendo modelo Positivo" << std::endl;		
+		BuildHMM(model, pos, 8, symbols);
+		HiddenMarkovModelExporter::ExportPlainText(model, pModelFile);
 	}
 	{
 		std::cout << "Construyendo modelo Negativo" << std::endl;
-		auto model = HiddenMarkovModel();
-		auto top = ForwardTopology(8, 8, false);
-		InitializeHiddenMarkovModelWithTopology(model, top, symbols); 
-		auto learning = BaumWelchLearning(model, 5e-4, 0);
-		auto tol = learning.Run(neg);
-		std::cout << "Model obtenido con Likelihood = " << tol << std::endl;
-		HiddenMarkovModelExporter::ExportPlainText(model, "negative_model.txt");
+		BuildHMM(model, pos, 8, symbols);
+		HiddenMarkovModelExporter::ExportPlainText(model, nModelFile);
+	}
+}
+
+int TestSample(const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
+{
+	auto l1 = EvaluateModel(pmodel, sample);
+	auto l2 = EvaluateModel(nmodel, sample);
+	return l1 > l2 ? 1 : 0;
+}
+
+void Test(string samplesFile, string pModelFile, string nModelFile, string reportFile)
+{
+	TObservationVector pos, neg;
+	size_t symbols;
+	SamplesReader reader;
+	
+	auto nmodel = HiddenMarkovModel();
+	auto pmodel = HiddenMarkovModel();
+
+	std::cout << "Cargando modelos." << std::endl;
+	HiddenMarkovModelExporter::ImportPlainText(nmodel, nModelFile);
+	HiddenMarkovModelExporter::ImportPlainText(pmodel, pModelFile);
+
+	std::cout << "Cargando archivo de muestras." << std::endl;
+	reader.ReadSamples(samplesFile, pos, neg, &symbols);
+
+	for(size_t i=0; i<pos.size(); i++)
+	{
+		auto r = TestSample(pmodel, nmodel, pos[i]);
+	}
+}
+
+int main(int argc, char* argv[])
+{
+	bool create = string(argv[0]) == "train";
+	bool test = string(argv[0]) == "test";
+	string filename1 = argv[1];
+	string filename2 = argv[2];
+	string filename3 = argv[3];
+	if(create) 
+	{
+		int states = lexical_cast<int>(string(argv[4]));
+		Create(filename1, filename2, filename3, states);
+	}
+	else if(test) 
+	{
+		string filename4 = argv[4];
+		Test(filename1, filename2, filename3, filename4);
 	}
 	return 0;
 }
