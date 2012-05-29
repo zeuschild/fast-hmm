@@ -19,10 +19,6 @@ TObservationVector makeSamples(TSymbol* ini, size_t sampLen, size_t total)
 
 void Testing()
 {
-	auto model = HiddenMarkovModel();
-	auto top = ForwardTopology(6, 6, false);
-	InitializeHiddenMarkovModelWithTopology(model, top, 4);
-	auto learning = BaumWelchLearning(model, 5e-4, 0);	
 	TSymbol p1[] = 
 	{ 
 		0,1,2,3,0,1,2,
@@ -31,7 +27,13 @@ void Testing()
 		0,1,2,3,1,1,2 
 	};
 	auto obs = makeSamples(p1, 7, 7*4);
+
+	auto model = HiddenMarkovModel();
+	auto top = ForwardTopology(6, 6, false);
+	InitializeHiddenMarkovModelWithTopology(model, top, 4);
+	auto learning = BaumWelchLearning(model, 5e-4, 0);		
 	auto rtol = learning.Run(obs);
+
 	TSymbol test[] = 
 	{
 		0,1,2,3,0,1,2,
@@ -50,6 +52,7 @@ void Testing()
 	assert(fabs(r2-(-5.0350078739166229)) < TOL);
 	assert(fabs(r3-(-32602.524455560128)) < TOL);
 	assert(fabs(r4-(-19547.858747514234)) < TOL);
+	std::cout << "TESTING FINALIZADO CON EXITO" << std::endl;
 }
 
 /* PROGRAMA DE REFERENCIA
