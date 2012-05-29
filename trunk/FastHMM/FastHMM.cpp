@@ -10,6 +10,7 @@
 using std::string;
 using boost::lexical_cast;
 
+// Construye un HMM con los parametros
 void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_t states, size_t alpha)
 {
 	auto tolerance = 5e-5;
@@ -21,8 +22,10 @@ void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_
 	std::cout << "Modelo obtenido con Likelihood = " << likelihood << std::endl;
 }
 
+// Crear model a partir de un archivo de muestras etiquetadas
 void Create(string samplesFile, string pModelFile, string nModelFile, int states)
 {
+	std::cout << "Creacion de modelos" << std::endl;
 	TObservationVector pos, neg;
 	size_t symbols;
 	SamplesReader reader;
@@ -36,11 +39,12 @@ void Create(string samplesFile, string pModelFile, string nModelFile, int states
 	}
 	{
 		std::cout << "Construyendo modelo Negativo" << std::endl;
-		BuildHMM(model, pos, 8, symbols);
+		BuildHMM(model, neg, 8, symbols);
 		HiddenMarkovModelExporter::ExportPlainText(model, nModelFile);
 	}
 }
 
+// Prueba una muestra con el clasificador (dos HMM)
 int TestSample(const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
 {
 	auto l1 = EvaluateModel(pmodel, sample);
@@ -48,6 +52,7 @@ int TestSample(const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel,
 	return l1 > l2 ? 1 : 0;
 }
 
+// Prueba un clasificador de dos modelos usando un archivo de muestras
 void Test(string samplesFile, string pModelFile, string nModelFile, string reportFile)
 {
 	TObservationVector pos, neg;
@@ -85,20 +90,35 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 
 int main(int argc, char* argv[])
 {
-	bool create = string(argv[0]) == "train";
-	bool test = string(argv[0]) == "test";
-	string filename1 = argv[1];
-	string filename2 = argv[2];
-	string filename3 = argv[3];
+	bool create = string(argv[1]) == "train";
+	bool test = string(argv[1]) == "test";	
 	if(create) 
 	{
-		int states = lexical_cast<int>(string(argv[4]));
+		if(argc < 4) 
+		{
+			std::cout << "Numero de argumentos incorrecto" << std::endl;
+		}
+		string filename1 = argv[2];
+		string filename2 = argv[3];
+		string filename3 = argv[4];
+		int states = lexical_cast<int>(string(argv[5]));
 		Create(filename1, filename2, filename3, states);
 	}
 	else if(test) 
 	{
-		string filename4 = argv[4];
+		if(argc < 4) 
+		{
+			std::cout << "Numero de argumentos incorrecto" << std::endl;
+		}		
+		string filename1 = argv[2];
+		string filename2 = argv[3];
+		string filename3 = argv[4];
+		string filename4 = argv[5];
 		Test(filename1, filename2, filename3, filename4);
+	}
+	else 
+	{
+		std::cout << "Opcion invalida: '" << argv[1] << "'" << std::endl;
 	}
 	return 0;
 }
