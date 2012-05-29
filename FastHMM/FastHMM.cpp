@@ -64,9 +64,20 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 	std::cout << "Cargando archivo de muestras." << std::endl;
 	reader.ReadSamples(samplesFile, pos, neg, &symbols);
 
+	std::cout << "Evaluando..." << std::endl;
+	int pc = 0;
+	int nc = 0;
 	for(size_t i=0; i<pos.size(); i++)
 	{
 		auto r = TestSample(pmodel, nmodel, pos[i]);
+		std::cout << "Evaluada P #" << i << " = " << r << std::endl;
+		if(r == 1) pc++;
+	}
+	for(size_t i=0; i<neg.size(); i++)
+	{
+		auto r = TestSample(pmodel, nmodel, neg[i]);
+		std::cout << "Evaluada N #" << i << " = " << r << std::endl;
+		if(r == 0) nc++;
 	}
 }
 
