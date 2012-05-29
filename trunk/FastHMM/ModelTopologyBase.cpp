@@ -2,6 +2,7 @@
 #include "ModelTopologyBase.h"
 #include "MathUtil.h"
 
+/// Evalua un modelo oculto de markov usando un inicializador de topologia
 void InitializeHiddenMarkovModelWithTopology(HiddenMarkovModel& model, ModelTopologyBase& topology, size_t symbols)
 {
 	model.states = topology.Create(true, model.symbols, model.transitions, model.probabilities);			
