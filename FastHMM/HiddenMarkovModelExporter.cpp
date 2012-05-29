@@ -6,30 +6,28 @@ using namespace boost::algorithm;
 using boost::lexical_cast;
 
 ostream &operator << (ostream &os, const TMatrix &m)
-{	
-	ostream* o = &os;
+{		
 	for(size_t i = 0; i < m.size1(); i++)
 	{
 		for(size_t j = 0; j < m.size2(); j++)
 		{
 			auto val = m(i, j);
-			o = &((*o) << val << " ");
-		}
-		o = &((*o) << endl);
+			os << lexical_cast<string>(val) << " ";
+		}	
+		os << endl;
 	}
-	return *o;
+	return os;
 }
 
 ostream &operator << (ostream &os, const TRealVector &m)
-{
-	ostream* o = &os;
+{	
 	for(size_t j = 0; j < m.size(); j++)
 	{
 		auto val = m[j];
-		o = &((*o) << val << " ");
+		os << lexical_cast<string>(val) << " ";
 	}
-	o = &((*o) << endl);	
-	return *o;
+	os << endl;
+	return os;
 }
 
 void HiddenMarkovModelExporter::ExportPlainText(const HiddenMarkovModel& model, const std::string& filename)
@@ -45,4 +43,101 @@ void HiddenMarkovModelExporter::ExportPlainText(const HiddenMarkovModel& model, 
 	out << model.transitions << endl;
 	out << "# emissions matrix" << endl;
 	out << model.emissions << endl;
+}
+	
+vector<string> splitBySpaces( string line )
+{
+	vector<string> splits;
+	// divide la cadena por los espacios
+	boost::split(splits, line, [](char s){return s==' ';});
+	return splits;
+}
+
+void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const std::string& filename)
+{
+	ifstream file(filename);
+	if(!file.is_open()) 
+	{
+		throw exception("El archivo no pudo ser abierto");
+	}
+	string line;	
+	int lineNumber=1;
+	int counter;
+	enum { header, probabilities, transitions, emissions } state;
+	state = header;		
+	while(!file.eof())
+	{
+		getline(file, line);
+		trim(line);		
+		// ignora los comentarios
+		if(line[0] == '#') continue;
+		if(state == header)
+		{			
+			if(line.empty()) 
+			{
+				state = probabilities;
+				counter = 0;				
+			}
+			auto splits = splitBySpaces(line);
+			if(splits.size() != 2)
+			{
+				throw exception("Archivo de modelo invalido, cabecera mal formada");
+			}
+			model.states = lexical_cast<size_t>(splits[0]);
+			model.symbols = lexical_cast<size_t>(splits[1]);			
+		} 	
+		else if(state == probabilities)
+		{
+			if(line.empty()) 
+			{				
+				state = transitions;
+				counter = 0;				
+			}
+			auto splits = splitBySpaces(line);
+			auto width = splits.size();
+			if(width == 0) throw exception("Archivo de modelo invalido, vector de probabilidades mal formada");			
+			model.probabilities.resize(width);
+			for(int i=0; i<width; i++)
+			{
+				auto val = lexical_cast<TReal>(splits[i]);
+				model.probabilities[i] = val;
+			}
+		}
+		else if(state == transitions)
+		{			
+			if(line.empty()) 
+			{				
+				state = emissions;
+				counter = 0;
+			}
+			auto splits = splitBySpaces(line);			
+			auto width = splits.size();
+			if(width == 0) throw exception("Archivo de modelo invalido, matriz de transiciones mal formada");			
+			model.transitions.resize(counter+1, width);
+			for(int i=0; i<width; i++)
+			{
+				auto val = lexical_cast<TReal>(splits[i]);
+				model.transitions(counter, i) = val;
+			}
+			counter++;
+		}
+		else if(state == emissions)
+		{			
+			if(line.empty()) 
+			{				
+				return;
+			}
+			auto splits = splitBySpaces(line);			
+			auto width = splits.size();
+			if(width == 0) throw exception("Archivo de modelo invalido, matriz de emisiones mal formada");			
+			model.emissions.resize(counter+1, width);
+			for(int i=0; i<width; i++)
+			{
+				auto val = lexical_cast<TReal>(splits[i]);
+				model.emissions(counter, i) = val;
+			}
+			counter++;
+		}
+		lineNumber++;
+	}
 }
