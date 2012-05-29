@@ -1,8 +1,9 @@
 #pragma once
 
 #include "ImplConfig.h"
+#include "ModelTopologyBase.h"
 
-class ForwardTopology
+class ForwardTopology : public ModelTopologyBase 
 {	
 	TRealVector pi;
 
@@ -13,6 +14,6 @@ public:
 	size_t deepness;
 	bool random;	
 
-	size_t Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState, TMatrix& emissions);
+	size_t Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState);
 };
 
