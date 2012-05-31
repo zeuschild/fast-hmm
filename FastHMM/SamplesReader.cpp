@@ -1,3 +1,7 @@
+/**
+	Very simple File Format for sample dataset exchange
+*/
+
 #include "StdAfx.h"
 #include "SamplesReader.h"
 
