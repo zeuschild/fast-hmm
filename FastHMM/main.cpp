@@ -22,8 +22,8 @@ void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_
 	std::cout << "Modelo obtenido con Likelihood = " << likelihood << std::endl;
 }
 
-// Crear model a partir de un archivo de muestras etiquetadas
-void Create(string samplesFile, string pModelFile, string nModelFile, int states)
+// Crear modelos a partir de un archivo de muestras etiquetadas
+void Train(string samplesFile, string pModelFile, string nModelFile, int states)
 {
 	cout << "Creacion de modelos" << endl;
 	TObservationVector pos, neg;
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 		string filename2 = argv[3];
 		string filename3 = argv[4];
 		int states = lexical_cast<int>(string(argv[5]));
-		Create(filename1, filename2, filename3, states);
+		Train(filename1, filename2, filename3, states);
 		return 0;
 	}
 	else if(test) 

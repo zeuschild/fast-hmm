@@ -163,7 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BaumWelchLearning.cpp" />
-    <ClCompile Include="FastHMM.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="ForwardBackwardAlgorithm.cpp" />
     <ClCompile Include="ForwardTopology.cpp" />
     <ClCompile Include="HiddenMarkovModel.cpp" />
