@@ -34,7 +34,7 @@ void Create(string samplesFile, string pModelFile, string nModelFile, int states
 	reader.ReadSamples(samplesFile, pos, neg, &symbols);
 	{
 		cout << "Construyendo modelo Positivo" << endl;
-		BuildHMM(model, pos, states, symbols);
+		BuildHMM(model, pos, states*3, symbols);
 		HiddenMarkovModelExporter::ExportPlainText(model, pModelFile);
 	}
 	{
@@ -83,19 +83,22 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 	report << "Muestras Positivas" << endl;
 	for(size_t i=0; i<pos.size(); i++)
 	{
-		auto r = TestSample(report, i, pmodel, nmodel, pos[i]);
-		std::cout << "Evaluada P #" << i << " = " << r << endl;
+		auto r = TestSample(report, i, pmodel, nmodel, pos[i]);		
 		if(r == 1) pc++;
 	}
 	report << "Muestras Negativas" << endl;
 	for(size_t i=0; i<neg.size(); i++)
 	{
-		auto r = TestSample(report, i, pmodel, nmodel, neg[i]);
-		cout << "Evaluada N #" << i << " = " << r << endl;
+		auto r = TestSample(report, i, pmodel, nmodel, neg[i]);		
 		if(r == 0) nc++;
 	}
+	
 	cout << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << endl;
-	cout << "Total: " << (pos.size() + neg.size()) << endl;
+	cout << "Total: " << (pos.size() + neg.size()) << " Total P: " << pos.size() << " Total N: " << neg.size() << endl;
+
+	report << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << endl;
+	report << "Total: " << (pos.size() + neg.size()) << " Total P: " << pos.size() << " Total N: " << neg.size() << endl;
+
 	report.close();
 }
 
