@@ -37,7 +37,7 @@ void HiddenMarkovModelExporter::ExportPlainText(const HiddenMarkovModel& model, 
 	out.precision(25);
 	out << "# Hidden Markov Model" << endl;
 	out << "# states symbols" << endl;
-	out << model.states << " " << model.symbols << endl;
+	out << model.states << " " << model.symbols << endl << endl;
 	out << "# probabilities vector" << endl;
 	out << model.probabilities << endl;
 	out << "# transitions matrix" << endl;
@@ -63,22 +63,24 @@ void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const 
 		throw exception("El archivo no pudo ser abierto");
 	}
 	string line;	
-	int lineNumber=1;
+	int lineNumber=0;
 	int counter;
-	enum { header, probabilities, transitions, emissions } state;
+	enum { header, probabilities, transitions, emissions, success } state;
 	state = header;		
 	while(!file.eof())
 	{
 		getline(file, line);
 		trim(line);		
+		lineNumber++;
 		// ignora los comentarios
-		if(line[0] == '#') continue;
+		if(line.length() > 0 && line[0] == '#') continue;
 		if(state == header)
 		{			
 			if(line.empty()) 
 			{
 				state = probabilities;
-				counter = 0;				
+				counter = 0;		
+				continue;
 			}
 			auto splits = splitBySpaces(line);
 			if(splits.size() != 2)
@@ -93,7 +95,8 @@ void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const 
 			if(line.empty()) 
 			{				
 				state = transitions;
-				counter = 0;				
+				counter = 0;		
+				continue;
 			}
 			auto splits = splitBySpaces(line);
 			auto width = splits.size();
@@ -111,6 +114,7 @@ void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const 
 			{				
 				state = emissions;
 				counter = 0;
+				continue;
 			}
 			auto splits = splitBySpaces(line);			
 			auto width = splits.size();
@@ -126,8 +130,9 @@ void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const 
 		else if(state == emissions)
 		{			
 			if(line.empty()) 
-			{				
-				return;
+			{		
+				state = success;
+				break;
 			}
 			auto splits = splitBySpaces(line);			
 			auto width = splits.size();
@@ -139,7 +144,10 @@ void HiddenMarkovModelExporter::ImportPlainText(HiddenMarkovModel& model, const 
 				model.emissions(counter, i) = val;
 			}
 			counter++;
-		}
-		lineNumber++;
+		}		
+	}
+	if(state != success) 
+	{
+		throw exception("Error leyendo el archivo de modelo");
 	}
 }

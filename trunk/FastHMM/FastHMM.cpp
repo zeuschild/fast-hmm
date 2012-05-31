@@ -7,7 +7,7 @@
 #include "SamplesReader.h"
 #include "HiddenMarkovModelExporter.h"
 
-using std::string;
+using namespace std;
 using boost::lexical_cast;
 
 // Construye un HMM con los parametros
@@ -16,7 +16,7 @@ void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_
 	auto tolerance = 5e-5;
 	auto random = true;
 	auto topology = ForwardTopology(states, states, random);
-	InitializeHiddenMarkovModelWithTopology(model, topology, alpha);
+	InitializeHiddenMarkovModelWithTopology(model, topology, 26); // TODO: ARREGLAR EL ALPHA
 	auto learning = BaumWelchLearning(model, tolerance, 0);
 	auto likelihood = learning.Run(samples);
 	std::cout << "Modelo obtenido con Likelihood = " << likelihood << std::endl;
@@ -25,31 +25,33 @@ void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_
 // Crear model a partir de un archivo de muestras etiquetadas
 void Create(string samplesFile, string pModelFile, string nModelFile, int states)
 {
-	std::cout << "Creacion de modelos" << std::endl;
+	cout << "Creacion de modelos" << endl;
 	TObservationVector pos, neg;
 	size_t symbols;
 	SamplesReader reader;
 	auto model = HiddenMarkovModel();
-	std::cout << "Cargando archivo de muestras." << std::endl;
+	cout << "Cargando archivo de muestras." << endl;
 	reader.ReadSamples(samplesFile, pos, neg, &symbols);
 	{
-		std::cout << "Construyendo modelo Positivo" << std::endl;		
-		BuildHMM(model, pos, 8, symbols);
+		cout << "Construyendo modelo Positivo" << endl;
+		BuildHMM(model, pos, states, symbols);
 		HiddenMarkovModelExporter::ExportPlainText(model, pModelFile);
 	}
 	{
-		std::cout << "Construyendo modelo Negativo" << std::endl;
-		BuildHMM(model, neg, 8, symbols);
+		cout << "Construyendo modelo Negativo" << endl;
+		BuildHMM(model, neg, states, symbols);
 		HiddenMarkovModelExporter::ExportPlainText(model, nModelFile);
 	}
 }
 
 // Prueba una muestra con el clasificador (dos HMM)
-int TestSample(const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
+int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
 {
 	auto l1 = EvaluateModel(pmodel, sample);
 	auto l2 = EvaluateModel(nmodel, sample);
-	return l1 > l2 ? 1 : 0;
+	auto c = l1 > l2 ? 1 : 0;
+	report << "Evaluation # " << n << " class: " << c << " p: " << l1 << " n: " << l2 << endl;
+	return c;
 }
 
 // Prueba un clasificador de dos modelos usando un archivo de muestras
@@ -62,64 +64,105 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 	auto nmodel = HiddenMarkovModel();
 	auto pmodel = HiddenMarkovModel();
 
-	std::cout << "Cargando modelos." << std::endl;
+	cout << "Cargando modelos." << endl;
 	HiddenMarkovModelExporter::ImportPlainText(nmodel, nModelFile);
 	HiddenMarkovModelExporter::ImportPlainText(pmodel, pModelFile);
 
-	std::cout << "Cargando archivo de muestras." << std::endl;
+	cout << "Cargando archivo de muestras." << endl;
 	reader.ReadSamples(samplesFile, pos, neg, &symbols);
 
-	std::cout << "Evaluando..." << std::endl;
+	cout << "Evaluando..." << endl;
 	int pc = 0;
 	int nc = 0;
+	ofstream report(reportFile);
+	if(!report.is_open())
+	{
+		throw std::exception("Error with report file");
+		return;
+	}
+	report << "Muestras Positivas" << endl;
 	for(size_t i=0; i<pos.size(); i++)
 	{
-		auto r = TestSample(pmodel, nmodel, pos[i]);
-		std::cout << "Evaluada P #" << i << " = " << r << std::endl;
+		auto r = TestSample(report, i, pmodel, nmodel, pos[i]);
+		std::cout << "Evaluada P #" << i << " = " << r << endl;
 		if(r == 1) pc++;
 	}
+	report << "Muestras Negativas" << endl;
 	for(size_t i=0; i<neg.size(); i++)
 	{
-		auto r = TestSample(pmodel, nmodel, neg[i]);
-		std::cout << "Evaluada N #" << i << " = " << r << std::endl;
+		auto r = TestSample(report, i, pmodel, nmodel, neg[i]);
+		cout << "Evaluada N #" << i << " = " << r << endl;
 		if(r == 0) nc++;
 	}
-	std::cout << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << std::endl;
-	std::cout << "Total: " << (pos.size() + neg.size()) << std::endl;
+	cout << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << endl;
+	cout << "Total: " << (pos.size() + neg.size()) << endl;
+	report.close();
 }
 
 int main(int argc, char* argv[])
 {
+	if(argc < 2) 
+	{
+		cout << "Para obtener ayuda ejecute \"FastHMM help\"" << endl;
+		return 1;
+	}
 	bool create = string(argv[1]) == "train";
 	bool test = string(argv[1]) == "test";	
+	bool help = string(argv[1]) == "help";	
 	if(create) 
 	{
-		if(argc < 4) 
+		if(argc != 6) 
 		{
-			std::cout << "Numero de argumentos incorrecto" << std::endl;
+			cout << "Numero de argumentos incorrecto" << endl;
+			return 1;
 		}
 		string filename1 = argv[2];
 		string filename2 = argv[3];
 		string filename3 = argv[4];
 		int states = lexical_cast<int>(string(argv[5]));
 		Create(filename1, filename2, filename3, states);
+		return 0;
 	}
 	else if(test) 
 	{
-		if(argc < 4) 
+		if(argc != 6) 
 		{
-			std::cout << "Numero de argumentos incorrecto" << std::endl;
-		}		
+			cout << "Numero de argumentos incorrecto" << endl;
+			return 1;
+		}
 		string filename1 = argv[2];
 		string filename2 = argv[3];
 		string filename3 = argv[4];
 		string filename4 = argv[5];
 		Test(filename1, filename2, filename3, filename4);
+		return 0;
+	}
+	else if(help)
+	{
+		cout 
+			<< "\tFastHMM {help|create|test} <options>" << endl
+			<< "Options:" << endl
+			<< endl
+			<< "help" << endl
+			<< "\tMuestra este mensaje de ayuda" << endl
+			<< endl
+			<< "train <samples> <pmodel> <nmodel> <nstates>" << endl
+			<< "\tEntrena dos modelos desde las muestras etiquetadas positivas" << endl
+			<< "\ty negativas en el archivo <samples>." << endl
+			<< "\tGuarda los modelos en los archivos <pmodel> y <nmodel>" << endl
+			<< endl
+			<< "test <samples> <pmodel> <nmodel> <report>" << endl
+			<< "\tEvalua los modelos en los archivos <pmodel> y <nmodel> sobre el archivo" << endl
+			<< "\tde muestras realizando clasificacion binaria por comparacion de." << endl
+			<< "\tverosimilitud. Los resultados se escriben en el archivo <report>" << endl
+			<< endl
+			;
+		return 0;
 	}
 	else 
 	{
-		std::cout << "Opcion invalida: '" << argv[1] << "'" << std::endl;
+		cout << "Opcion invalida: '" << argv[1] << "'" << endl;
+		return 1;
 	}
-	return 0;
 }
 
