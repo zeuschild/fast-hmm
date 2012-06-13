@@ -44,6 +44,7 @@ void Train(string samplesFile, string pModelFile, string nModelFile, int states)
 	}
 }
 
+
 // Prueba una muestra con el clasificador (dos HMM)
 int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
 {
@@ -52,6 +53,23 @@ int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const H
 	auto c = l1 > l2 ? 1 : 0;
 	report << "Evaluation # " << n << " class: " << c << " p: " << l1 << " n: " << l2 << endl;
 	return c;
+}
+
+
+// Escribe los resultados de un experimento
+void ReportMetric(ostream& report, int tp, int tn, int totalP, int totalN)
+{
+	auto fp = totalP - tp;
+	auto fn = totalN - tn;
+	auto acc = (tp + tn)/(float)(totalP + totalN);
+	auto sens = tp/(float)totalP;
+	auto spec = tn/(float)totalN;
+	auto mcc = (tp*tn - fp*fn)/sqrt((float)(tp+fp)*(tp+fn)*(tn+fp)*(tn+fn));
+
+	// informa resultado
+	report << "True Positives: " << tp << ", True Negatives: " << tn << endl;	
+	report << "Total Samples: " << (totalP + totalN) << ", Total P-samples: " << totalP << ", Total N-samples: " << totalN << endl;
+	report << "Accuracy: " << acc << ", Sensitivity: " << sens << ", Specificity: " << spec << ", MCC: " << mcc << endl;
 }
 
 // Prueba un clasificador de dos modelos usando un archivo de muestras
@@ -93,11 +111,8 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 		if(r == 0) nc++;
 	}
 	
-	cout << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << endl;
-	cout << "Total: " << (pos.size() + neg.size()) << " Total P: " << pos.size() << " Total N: " << neg.size() << endl;
-
-	report << "TP: " << pc << "/" << pos.size() << " TN: " << nc << "/" << neg.size() << endl;
-	report << "Total: " << (pos.size() + neg.size()) << " Total P: " << pos.size() << " Total N: " << neg.size() << endl;
+	ReportMetric(cout, pc, nc, (int)pos.size(), (int)neg.size());
+	ReportMetric(report, pc, nc, (int)pos.size(), (int)neg.size());
 
 	report.close();
 }
