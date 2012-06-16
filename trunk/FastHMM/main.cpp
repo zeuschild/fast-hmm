@@ -16,7 +16,7 @@ void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_
 	auto tolerance = 5e-5;
 	auto random = true;
 	auto topology = ForwardTopology(states, states, random);
-	InitializeHiddenMarkovModelWithTopology(model, topology, 26); // TODO: ARREGLAR EL ALPHA
+	InitializeHiddenMarkovModelWithTopology(model, topology, alpha);
 	auto learning = BaumWelchLearning(model, tolerance, 0);
 	auto likelihood = learning.Run(samples);
 	std::cout << "Modelo obtenido con Likelihood = " << likelihood << std::endl;
@@ -44,6 +44,28 @@ void Train(string samplesFile, string pModelFile, string nModelFile, int states)
 	}
 }
 
+void TrainMultiple(string samplesFilename, string manifestFilename, int count, int states)
+{
+	ofstream manifest(manifestFilename);
+	if(!manifest.is_open())
+	{
+		throw exception("No fue posible abrir el archivo de manifiesto");
+	}
+	manifest << "# Manifiesto de clasificador" << endl;
+	manifest << "# Los siguientes archivos de modelos referenciados" << endl;
+	string pmodelFilename;
+	string nmodelFilename;
+	for(int i=0; i<count; i++)
+	{
+		pmodelFilename = string("phmm-") + lexical_cast<string>(i) + ".hmm";
+		nmodelFilename = string("nhmm-") + lexical_cast<string>(i) + ".hmm";
+		Train(samplesFilename, pmodelFilename, nmodelFilename, states);
+		manifest << "p " << pmodelFilename << endl;
+		manifest << "n " << nmodelFilename << endl;
+		cout << "Progreso global: modelo " << i << " (" << (i*100/count) << "%)" << endl;
+	}
+	manifest.close();
+}
 
 // Prueba una muestra con el clasificador (dos HMM)
 int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
@@ -55,6 +77,79 @@ int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const H
 	return c;
 }
 
+
+// Evalua un conjunto de modelos sobre un conjunto de muestras
+void TestMultiple(string samplesFilename, string modelsManifestFilename, string reportFilename)
+{
+	TObservationVector pos, neg;
+	vector<HiddenMarkovModel> models;
+		
+	// Carga modelos del clasificador
+	{
+		cout << "Cargando manifiesto." << endl;
+		vector<string> modelFiles;
+		ReadManifest(modelsManifestFilename, modelFiles);
+		for(auto i = modelFiles.begin(); i!=modelFiles.end(); i++)
+		{
+			HiddenMarkovModel model;
+			HiddenMarkovModelExporter::ImportPlainText(model, *i);
+			models.push_back(model);
+			cout << "Modelo \"" << *i << "\" cargado." << endl;
+		}
+		cout << "Cargados " << models.size() << " modelos" << endl;
+	}	
+	
+	cout << "Cargando archivo de muestras." << endl;
+	SamplesReader reader;
+	
+	unsigned alpha;
+	reader.ReadSamples(samplesFilename, pos, neg, &alpha);
+
+	ofstream report(reportFilename);
+	if(!report.is_open())
+	{
+		throw std::exception("Error abriendo el archivo de reporte");
+		return;
+	}
+	
+	cout << "Evaluando..." << endl;
+	
+	// el umbral se fija en la mitad entera del numero de modelos	
+	auto threshold = models.size() / 2;
+	int pc = 0, nc = 0;
+	report << "Muestras Positivas" << endl;
+	for(size_t i = 0; i < pos.size(); i++)
+	{
+		int answerCounter = 0;
+		for(auto j=models.begin(); j != models.end(); j++)
+		{
+			auto rj = TestSample(report, i, *j, pos[i]);
+			// cuenta los modelos que votan por "positiva"
+			if(rj == 1) answerCounter++; 
+		}		
+		// si mas de la mitad de los votos son por "positiva"
+		if(answerCounter > threshold) pc++; 
+	}
+	report << "Muestras Negativas" << endl;
+	for(size_t i=0; i<neg.size(); i++)
+	{
+		int answerCounter = 0;
+		for(auto j=models.begin(); j != models.end(); j++)
+		{
+			auto r = TestSample(report, i, *j, neg[i]);		
+			// cuenta los modelos que votan por "negativa"
+			if(r == 0) answerCounter++;
+		}
+		// si mas de la mitad de los votos son por "negativa"
+		if(answerCounter > threshold) nc++;
+	}
+
+	// informa resultado
+	ReportMetric(cout, pc, nc, (int)pos.size(), (int)neg.size());
+	ReportMetric(report, pc, nc, (int)pos.size(), (int)neg.size());
+
+	report.close();
+}
 
 // Escribe los resultados de un experimento
 void ReportMetric(ostream& report, int tp, int tn, int totalP, int totalN)
@@ -165,6 +260,11 @@ int main(int argc, char* argv[])
 			<< "\tMuestra este mensaje de ayuda" << endl
 			<< endl
 			<< "train <samples> <pmodel> <nmodel> <nstates>" << endl
+			<< "\tEntrena dos modelos desde las muestras etiquetadas positivas" << endl
+			<< "\ty negativas en el archivo <samples>." << endl
+			<< "\tGuarda los modelos en los archivos <pmodel> y <nmodel>" << endl
+			<< endl
+			<< "train_multiple <samples> <pmodel> <nmodel> <nstates>" << endl
 			<< "\tEntrena dos modelos desde las muestras etiquetadas positivas" << endl
 			<< "\ty negativas en el archivo <samples>." << endl
 			<< "\tGuarda los modelos en los archivos <pmodel> y <nmodel>" << endl

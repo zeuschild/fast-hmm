@@ -32,10 +32,12 @@ vector<string> _splitBySpaces( string line )
 /// </summary>
 void SamplesReader::ReadSamples(string filename, TObservationVector& pos, TObservationVector& neg, size_t* alphabetLength)
 {
+	assert(alphabetLength != NULL);
+
 	ifstream file(filename);
 	if(!file.is_open()) 
 	{
-		throw exception("El archivo no pudo ser abierto");
+		throw exception("El archivo de muestras no pudo ser abierto");
 	}
 
 	string line;
@@ -83,6 +85,10 @@ void SamplesReader::ReadSamples(string filename, TObservationVector& pos, TObser
 			for (auto it = splits.cbegin()+2; it!=splits.cend(); ++it)
 			{
 				auto val = (TSymbol)lexical_cast<int>(*it);
+				if(val >= *alphabetLength)
+				{
+					throw exception("Formato de archivo de secuencias invalido, longitud de alfabeto incorrecta");
+				}
 				newSample.push_back(val);
 			}
 
