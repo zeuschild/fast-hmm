@@ -19,15 +19,15 @@ ForwardTopology::ForwardTopology(size_t _states, size_t _deepness, bool _random)
 ///   initial state probabilities for this topology.
 /// </summary>
 size_t ForwardTopology::Create(bool logarithm, size_t symbols, TMatrix& transitionMatrix, TRealVector& initialState)
-{
-	boost::uniform_real<TReal> uni_dist(0,1);
-	boost::mt19937_64 eng(42);
-	boost::variate_generator<boost::mt19937_64, boost::uniform_real<TReal>> GenRand(eng, uni_dist);
-
+{	
     auto m = min(states, deepness);
     TMatrix A(states, states, 0);	
     if (random)
     {
+		boost::uniform_real<TReal> uni_dist(0,1);
+		boost::mt19937_64 eng(rand());
+		boost::variate_generator<boost::mt19937_64, boost::uniform_real<TReal>> GenRand(eng, uni_dist);
+
         // Create A using random uniform distribution,
         //  without allowing backward transitions
 

@@ -11,19 +11,18 @@ using namespace std;
 using boost::lexical_cast;
 
 // Construye un HMM con los parametros
-void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_t states, size_t alpha)
+void BuildHMM(HiddenMarkovModel& model, const TObservationVector& samples, size_t states, size_t alpha, bool random)
 {
-	auto tolerance = 5e-5;
-	auto random = true;
+	auto tolerance = 5e-5;	
 	auto topology = ForwardTopology(states, states, random);
 	InitializeHiddenMarkovModelWithTopology(model, topology, alpha);
 	auto learning = BaumWelchLearning(model, tolerance, 0);
 	auto likelihood = learning.Run(samples);
-	std::cout << "Modelo obtenido con Likelihood = " << likelihood << std::endl;
+	std::cout << "Modelo obtenido con Log(Likelihood) = " << likelihood << std::endl;
 }
 
 // Crear modelos a partir de un archivo de muestras etiquetadas
-void Train(string samplesFile, string pModelFile, string nModelFile, int states)
+void TrainSingle(string samplesFile, string pModelFile, string nModelFile, int states, bool random)
 {
 	cout << "Creacion de modelos" << endl;
 	TObservationVector pos, neg;
@@ -34,17 +33,17 @@ void Train(string samplesFile, string pModelFile, string nModelFile, int states)
 	reader.ReadSamples(samplesFile, pos, neg, &symbols);
 	{
 		cout << "Construyendo modelo Positivo" << endl;
-		BuildHMM(model, pos, states*3, symbols);
+		BuildHMM(model, pos, states*3, symbols, random);
 		HiddenMarkovModelExporter::ExportPlainText(model, pModelFile);
 	}
 	{
 		cout << "Construyendo modelo Negativo" << endl;
-		BuildHMM(model, neg, states, symbols);
+		BuildHMM(model, neg, states, symbols, random);
 		HiddenMarkovModelExporter::ExportPlainText(model, nModelFile);
 	}
 }
 
-void TrainMultiple(string samplesFilename, string manifestFilename, int count, int states)
+void TrainMultiple(string samplesFilename, string manifestFilename, int states, int count, bool random)
 {
 	ofstream manifest(manifestFilename);
 	if(!manifest.is_open())
@@ -53,22 +52,24 @@ void TrainMultiple(string samplesFilename, string manifestFilename, int count, i
 	}
 	manifest << "# Manifiesto de clasificador" << endl;
 	manifest << "# Los siguientes archivos de modelos referenciados" << endl;
+	manifest << "# p: Modelo para muestras positivas" << endl;
+	manifest << "# n: Modelo para muestras negativas" << endl;
 	string pmodelFilename;
 	string nmodelFilename;
 	for(int i=0; i<count; i++)
 	{
 		pmodelFilename = string("phmm-") + lexical_cast<string>(i) + ".hmm";
 		nmodelFilename = string("nhmm-") + lexical_cast<string>(i) + ".hmm";
-		Train(samplesFilename, pmodelFilename, nmodelFilename, states);
+		TrainSingle(samplesFilename, pmodelFilename, nmodelFilename, states, random);
 		manifest << "p " << pmodelFilename << endl;
 		manifest << "n " << nmodelFilename << endl;
-		cout << "Progreso global: modelo " << i << " (" << (i*100/count) << "%)" << endl;
+		cout << "Progreso global: modelo " << i << " (" << ((i+1)*100/count) << "%)" << endl;
 	}
 	manifest.close();
 }
 
 // Prueba una muestra con el clasificador (dos HMM)
-int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
+int TestSample(ofstream& report, size_t n, const HiddenMarkovModel& pmodel, const HiddenMarkovModel& nmodel, const TSymbolVector& sample)
 {
 	auto l1 = EvaluateModel(pmodel, sample);
 	auto l2 = EvaluateModel(nmodel, sample);
@@ -78,77 +79,36 @@ int TestSample(ofstream& report, int n, const HiddenMarkovModel& pmodel, const H
 }
 
 
-// Evalua un conjunto de modelos sobre un conjunto de muestras
-void TestMultiple(string samplesFilename, string modelsManifestFilename, string reportFilename)
+// Lee los modelos indicados en el manifiesto
+void ReadManifest(string manifestFilename, vector<string>& pmodels, vector<string>& nmodels)
 {
-	TObservationVector pos, neg;
-	vector<HiddenMarkovModel> models;
-		
-	// Carga modelos del clasificador
+	ifstream manifest(manifestFilename);
+	if(!manifest.is_open())
 	{
-		cout << "Cargando manifiesto." << endl;
-		vector<string> modelFiles;
-		ReadManifest(modelsManifestFilename, modelFiles);
-		for(auto i = modelFiles.begin(); i!=modelFiles.end(); i++)
-		{
-			HiddenMarkovModel model;
-			HiddenMarkovModelExporter::ImportPlainText(model, *i);
-			models.push_back(model);
-			cout << "Modelo \"" << *i << "\" cargado." << endl;
-		}
-		cout << "Cargados " << models.size() << " modelos" << endl;
-	}	
-	
-	cout << "Cargando archivo de muestras." << endl;
-	SamplesReader reader;
-	
-	unsigned alpha;
-	reader.ReadSamples(samplesFilename, pos, neg, &alpha);
-
-	ofstream report(reportFilename);
-	if(!report.is_open())
-	{
-		throw std::exception("Error abriendo el archivo de reporte");
+		throw std::exception("Error with manifest file");
 		return;
 	}
-	
-	cout << "Evaluando..." << endl;
-	
-	// el umbral se fija en la mitad entera del numero de modelos	
-	auto threshold = models.size() / 2;
-	int pc = 0, nc = 0;
-	report << "Muestras Positivas" << endl;
-	for(size_t i = 0; i < pos.size(); i++)
+	string line;
+	while(!manifest.eof())
 	{
-		int answerCounter = 0;
-		for(auto j=models.begin(); j != models.end(); j++)
+		getline(manifest, line);
+		boost::trim(line);
+		if(line.size() < 3 || line[0] == '#') continue;
+		// es un modelo positivo o negativo
+		if(line[0] == 'p' && line[1] == ' ') 
 		{
-			auto rj = TestSample(report, i, *j, pos[i]);
-			// cuenta los modelos que votan por "positiva"
-			if(rj == 1) answerCounter++; 
-		}		
-		// si mas de la mitad de los votos son por "positiva"
-		if(answerCounter > threshold) pc++; 
-	}
-	report << "Muestras Negativas" << endl;
-	for(size_t i=0; i<neg.size(); i++)
-	{
-		int answerCounter = 0;
-		for(auto j=models.begin(); j != models.end(); j++)
-		{
-			auto r = TestSample(report, i, *j, neg[i]);		
-			// cuenta los modelos que votan por "negativa"
-			if(r == 0) answerCounter++;
+			pmodels.push_back(line.substr(2));
 		}
-		// si mas de la mitad de los votos son por "negativa"
-		if(answerCounter > threshold) nc++;
+		else if(line[0] == 'n' || line[1] == ' ')
+		{
+			nmodels.push_back(line.substr(2));
+		}
+		else
+		{
+			throw std::exception("Error with manifest file");
+		}
 	}
-
-	// informa resultado
-	ReportMetric(cout, pc, nc, (int)pos.size(), (int)neg.size());
-	ReportMetric(report, pc, nc, (int)pos.size(), (int)neg.size());
-
-	report.close();
+	manifest.close();
 }
 
 // Escribe los resultados de un experimento
@@ -165,6 +125,95 @@ void ReportMetric(ostream& report, int tp, int tn, int totalP, int totalN)
 	report << "True Positives: " << tp << ", True Negatives: " << tn << endl;	
 	report << "Total Samples: " << (totalP + totalN) << ", Total P-samples: " << totalP << ", Total N-samples: " << totalN << endl;
 	report << "Accuracy: " << acc << ", Sensitivity: " << sens << ", Specificity: " << spec << ", MCC: " << mcc << endl;
+}
+
+// Evalua un conjunto de modelos sobre un conjunto de muestras
+void TestMultiple(string samplesFilename, string modelsManifestFilename, string reportFilename)
+{
+	TObservationVector pos, neg;
+	vector<HiddenMarkovModel> pmodels;
+	vector<HiddenMarkovModel> nmodels;
+	size_t classifierCount;
+	// Carga modelos del clasificador
+	{
+		cout << "Cargando manifiesto." << endl;
+		vector<string> pModelFiles, nModelFiles;
+		ReadManifest(modelsManifestFilename, pModelFiles, nModelFiles);
+		if(pModelFiles.size() != nModelFiles.size()) 
+		{
+			throw exception("Se esperaba la misma cantidad de modelos positivos y negativos");
+		}
+		classifierCount = pModelFiles.size(); // la cantidad de clasificadores
+		for(auto i = pModelFiles.begin(); i!=pModelFiles.end(); i++)
+		{
+			HiddenMarkovModel model;
+			HiddenMarkovModelExporter::ImportPlainText(model, *i);
+			pmodels.push_back(model);
+			cout << "Modelo POSITIVO \"" << *i << "\" cargado." << endl;
+		}
+		for(auto i = nModelFiles.begin(); i!=nModelFiles.end(); i++)
+		{
+			HiddenMarkovModel model;
+			HiddenMarkovModelExporter::ImportPlainText(model, *i);
+			nmodels.push_back(model);
+			cout << "Modelo NEGATIVO \"" << *i << "\" cargado." << endl;
+		}
+		cout << "Cargados " << (pmodels.size()+nmodels.size()) << " modelos en total" << endl;
+	}	
+	
+	cout << "Cargando archivo de muestras." << endl;
+	SamplesReader reader;
+	
+	size_t alpha;
+	reader.ReadSamples(samplesFilename, pos, neg, &alpha);
+
+	ofstream report(reportFilename);
+	if(!report.is_open())
+	{
+		throw std::exception("Error abriendo el archivo de reporte");		
+	}
+	
+	cout << "Evaluando..." << endl;
+	
+	// el umbral se fija en la mitad entera del numero de modelos	
+	auto threshold = nmodels.size() / 2;
+	int pc = 0, nc = 0;
+	report << "Muestras Positivas" << endl;
+	for(size_t i = 0; i < pos.size(); i++)
+	{
+		int answerCounter = 0;
+		for(auto j=0; j < classifierCount; j++)
+		{
+			auto& pm = pmodels[j];
+			auto& nm = nmodels[j];
+			auto rj = TestSample(report, i, pm, nm, pos[i]);
+			// cuenta los modelos que votan por "positiva"
+			if(rj == 1) answerCounter++; 
+		}		
+		// si mas de la mitad de los votos son por "positiva"
+		if(answerCounter > threshold) pc++; 
+	}
+	report << "Muestras Negativas" << endl;
+	for(size_t i=0; i<neg.size(); i++)
+	{
+		int answerCounter = 0;
+		for(auto j=0; j < classifierCount; j++)
+		{
+			auto& pm = pmodels[j];
+			auto& nm = nmodels[j];
+			auto r = TestSample(report, i, pm, nm, neg[i]);		
+			// cuenta los modelos que votan por "negativa"
+			if(r == 0) answerCounter++;
+		}
+		// si mas de la mitad de los votos son por "negativa"
+		if(answerCounter > threshold) nc++;
+	}
+
+	// informa resultado
+	ReportMetric(cout, pc, nc, (int)pos.size(), (int)neg.size());
+	ReportMetric(report, pc, nc, (int)pos.size(), (int)neg.size());
+
+	report.close();
 }
 
 // Prueba un clasificador de dos modelos usando un archivo de muestras
@@ -214,73 +263,140 @@ void Test(string samplesFile, string pModelFile, string nModelFile, string repor
 
 int main(int argc, char* argv[])
 {
-	if(argc < 2) 
+	try
 	{
-		cout << "Para obtener ayuda ejecute \"FastHMM help\"" << endl;
-		return 1;
-	}
-	bool create = string(argv[1]) == "train";
-	bool test = string(argv[1]) == "test";	
-	bool help = string(argv[1]) == "help";	
-	if(create) 
-	{
-		if(argc != 6) 
+		if(argc < 2) 
 		{
-			cout << "Numero de argumentos incorrecto" << endl;
+			cout << "Para obtener ayuda ejecute \"FastHMM help\"" << endl;
 			return 1;
 		}
-		string filename1 = argv[2];
-		string filename2 = argv[3];
-		string filename3 = argv[4];
-		int states = lexical_cast<int>(string(argv[5]));
-		Train(filename1, filename2, filename3, states);
-		return 0;
-	}
-	else if(test) 
-	{
-		if(argc != 6) 
+
+		vector<string> arguments;
+		for(int i=1; i<argc; i++)
 		{
-			cout << "Numero de argumentos incorrecto" << endl;
+			arguments.push_back(argv[i]);
+		}
+
+		bool train_single = arguments[0] == "train_single";
+		bool train_multiple = arguments[0] == "train_multiple";
+		bool test_single = arguments[0] == "test_single";
+		bool test_multiple = arguments[0] == "test_multiple";
+		bool help = arguments[0] == "help";	
+
+		if(help)
+		{
+			cout 
+				<< "\tFastHMM {help|create|test} <options>" << endl
+				<< "Options:" << endl
+				<< endl
+				<< "help" << endl
+				<< "\tMuestra este mensaje de ayuda" << endl
+				<< endl
+				<< "train_single <samples> <pmodel> <nmodel> <nstates> [--seed=N|--no-random]" << endl
+				<< "\tEntrena dos modelos desde las muestras etiquetadas positivas" << endl
+				<< "\ty negativas en el archivo <samples>." << endl
+				<< "\tGuarda los modelos en los archivos <pmodel> y <nmodel>" << endl
+				<< endl
+				<< "train_multiple <samples> <models-manifest> <count> <nstates> [--seed=N|--no-random]" << endl
+				<< "\tEntrena a partir de las muestras del archivo <samples> varios modelos" << endl
+				<< "\tque pueden ser utilizados como un comite de expertos" << endl
+				<< endl
+				<< "test_single <samples> <pmodel> <nmodel> <report>" << endl
+				<< "\tEvalua los modelos en los archivos <pmodel> y <nmodel> sobre el archivo" << endl
+				<< "\tde muestras realizando clasificacion binaria por comparacion de." << endl
+				<< "\tverosimilitud. Los resultados se escriben en el archivo <report>" << endl
+				<< endl
+				<< "test_multiple <samples> <models-manifest> <report>" << endl
+				<< "\tEvalua multiples modelos indicados en el archivo de manifiesto" << endl
+				<< "\t<models-manifest> con las muestras en el archivo <samples>." << endl
+				<< "\tEscribe los resultados en el archivo <report>" << endl
+				<< endl
+				<< ">> Shared options:" << endl				
+				<< "\tLa opcion --seed=N le permite establecer N como la semilla de" << endl
+				<< "\tgeneracion de numeros aleatorios. De esta manera puede generar" << endl
+				<< "\tmodelos ocultos inicializados en orden aleatorio y conservar" << endl
+				<< "\tel determinismo de los resultados de experimentacion" << endl
+				;
+		}
+		else if(train_single || train_multiple) 
+		{
+			if(arguments.size() < 5) 
+			{
+				cout << "Numero de argumentos incorrecto" << endl;
+				return 1;
+			}
+			string samplesFilename = arguments[1];			
+			int states = lexical_cast<int>(arguments[4]);
+			
+			bool random = true;
+			int customSeed = -1;
+			if(arguments.size() == 6) 
+			{
+				if(arguments[5] == "--no-random")
+				{
+					random = false;
+					cout << "NO usar inicializacion aleatoria" << endl;
+				}
+				if(boost::starts_with(arguments[5], "--seed="))
+				{
+					customSeed = lexical_cast<int>(arguments[5].substr(7));
+					cout << "Semilla personalizada: " << customSeed << endl;
+				}
+			}
+									
+			auto t = customSeed < 0 ? time(NULL) : customSeed;	
+			srand((unsigned)t);
+			
+			if(train_single)
+			{
+				string pModelFilename = arguments[2]; // solo para train single
+				string nModelFilename = arguments[3]; // solo para train single
+				TrainSingle(samplesFilename, pModelFilename, nModelFilename, states, random);	
+			} 
+			if(train_multiple)
+			{
+				int count = lexical_cast<int>(arguments[3]);
+				string manifestFilename = arguments[2]; // solo para train multiple			
+				TrainMultiple(samplesFilename, manifestFilename, states, count, random);
+			}
+		}	
+		else if(test_single) 
+		{
+			if(arguments.size() != 5) 
+			{
+				cout << "Numero de argumentos incorrecto" << endl;
+				return 1;
+			}
+			string samplesFilename = arguments[1];
+			string pmodelFilename = arguments[2];
+			string nmodelFilename = arguments[3];
+			string reportFilename = arguments[4];			
+			Test(samplesFilename, pmodelFilename, nmodelFilename, reportFilename);			
+		}		
+		else if(test_multiple) 
+		{
+			if(arguments.size() != 4) 
+			{
+				cout << "Numero de argumentos incorrecto" << endl;
+				return 1;
+			}
+			string samplesFilename = arguments[1];
+			string manifestFilename = arguments[2];
+			string reportFilename = arguments[3];			
+			TestMultiple(samplesFilename, manifestFilename, reportFilename);			
+		}		
+		else 
+		{
+			cout << "Opcion invalida: '" << argv[1] << "'" << endl;
 			return 1;
 		}
-		string filename1 = argv[2];
-		string filename2 = argv[3];
-		string filename3 = argv[4];
-		string filename4 = argv[5];
-		Test(filename1, filename2, filename3, filename4);
-		return 0;
 	}
-	else if(help)
+	catch (const exception& e) 
 	{
-		cout 
-			<< "\tFastHMM {help|create|test} <options>" << endl
-			<< "Options:" << endl
-			<< endl
-			<< "help" << endl
-			<< "\tMuestra este mensaje de ayuda" << endl
-			<< endl
-			<< "train <samples> <pmodel> <nmodel> <nstates>" << endl
-			<< "\tEntrena dos modelos desde las muestras etiquetadas positivas" << endl
-			<< "\ty negativas en el archivo <samples>." << endl
-			<< "\tGuarda los modelos en los archivos <pmodel> y <nmodel>" << endl
-			<< endl
-			<< "train_multiple <samples> <pmodel> <nmodel> <nstates>" << endl
-			<< "\tEntrena dos modelos desde las muestras etiquetadas positivas" << endl
-			<< "\ty negativas en el archivo <samples>." << endl
-			<< "\tGuarda los modelos en los archivos <pmodel> y <nmodel>" << endl
-			<< endl
-			<< "test <samples> <pmodel> <nmodel> <report>" << endl
-			<< "\tEvalua los modelos en los archivos <pmodel> y <nmodel> sobre el archivo" << endl
-			<< "\tde muestras realizando clasificacion binaria por comparacion de." << endl
-			<< "\tverosimilitud. Los resultados se escriben en el archivo <report>" << endl
-			<< endl
-			;
-		return 0;
+		string msg = e.what();
+		cout << "Unexpected error: " << msg << endl;
+		throw e;
 	}
-	else 
-	{
-		cout << "Opcion invalida: '" << argv[1] << "'" << endl;
-		return 1;
-	}
+	return 0;
 }
 
