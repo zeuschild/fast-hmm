@@ -286,7 +286,7 @@ int main(int argc, char* argv[])
 		if(help)
 		{
 			cout 
-				<< "\tFastHMM {help|create|test} <options>" << endl
+				<< "\tFastHMM {help|train_single|train_multiple|test_single|test_multiple} <options>" << endl
 				<< "Options:" << endl
 				<< endl
 				<< "help" << endl
